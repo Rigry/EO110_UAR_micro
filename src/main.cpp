@@ -17,45 +17,44 @@ using Led_work   = mcu::PC13;
 using Led_red    = mcu::PB12;
 using Led_yellow = mcu::PB13;
 
-extern "C" void init_clock () { init_clock(); }
+extern "C" void init_clock () { init_clock<F_OSC, F_CPU>(); }
 
 int main()
 {
-   // constexpr auto warning_hours {7'500};
-   // constexpr auto finish_hours  {8'000};
+   constexpr auto warning_hours {7'500};
+   constexpr auto finish_hours  {8'000};
    
-   // struct Flash_data {
+   struct Flash_data {
       
-   //    uint16_t hours = 0;
-   //    uint16_t minutes = 0; 
+      uint16_t hours = 0;
+      uint16_t minutes = 0; 
       
-   // }flash;
+   }flash;
    
-   // [[maybe_unused]] auto _ = Flash_updater<
-   //      mcu::FLASH::Sector::_26
-   //    , mcu::FLASH::Sector::_25
-   // >::make (&flash);
+   [[maybe_unused]] auto _ = Flash_updater<
+        mcu::FLASH::Sector::_26
+      , mcu::FLASH::Sector::_25
+   >::make (&flash);
 
-   // volatile decltype (auto) led_red    = Pin::make<Led_red,    mcu::PinMode::Output>();
-   // volatile decltype (auto) led_yellow = Pin::make<Led_yellow, mcu::PinMode::Output>();
+   volatile decltype (auto) led_red    = Pin::make<Led_red,    mcu::PinMode::Output>();
+   volatile decltype (auto) led_yellow = Pin::make<Led_yellow, mcu::PinMode::Output>();
    volatile decltype (auto) led_work   = Pin::make<Led_work,   mcu::PinMode::Output>();
 
-   // // подсчёт часов работы
-   // [[maybe_unused]] auto work_count = Work_count{flash};
+   // подсчёт часов работы
+   [[maybe_unused]] auto work_count = Work_count{flash};
 
-   // volatile decltype(auto) pwr_control = Pwr_control::make<mcu::PWR::Threshold::_2_9V>();
-   // pwr_control.set_callback([&]{
-   //    flash.minutes = work_count.get_minutes();
-   // });
+   volatile decltype(auto) pwr_control = Pwr_control::make<mcu::PWR::Threshold::_2_9V>();
+   pwr_control.set_callback([&]{
+      flash.minutes = work_count.get_minutes();
+   });
 
    Timer timer_reset;
-   // bool pause_reset{false};
+   bool pause_reset{false};
 
-   // auto reset = Button<Reset>();
-   // reset.set_long_push_callback([&]{work_count.reset(); timer_reset.start(3_s); led_work = true; pause_reset = true;});
+   auto reset = Button<Reset>();
+   reset.set_long_push_callback([&]{work_count.reset(); timer_reset.start(3_s); led_work = true; pause_reset = true;});
 
-   Timer timer{200_ms};
-   auto& sys_tick = mcu::make_reference<mcu::Periph::SysTick>();
+   Timer timer{1_s};
 
    while(1){
       
@@ -65,20 +64,20 @@ int main()
       //    led_work = false;
       // }
 
-      // led_work ^= (timer.event() & not pause_reset);
+      led_work ^= (timer.event() & not pause_reset);
 
-      led_work ^= timer.event();
+      // led_work ^= timer.event();
 
-      // if (flash.hours >= warning_hours and flash.hours < finish_hours) {
-      //    led_yellow = true;
-      //    led_red = false;
-      // } else if (flash.hours >= finish_hours) {
-      //    led_yellow = false;
-      //    led_red = true;
-      // } else {
-      //    led_yellow = false;
-      //    led_red = false;
-      // }
+      if (flash.hours >= warning_hours and flash.hours < finish_hours) {
+         led_yellow = true;
+         led_red = false;
+      } else if (flash.hours >= finish_hours) {
+         led_yellow = false;
+         led_red = true;
+      } else {
+         led_yellow = false;
+         led_red = false;
+      }
 
       __WFI();
    }
