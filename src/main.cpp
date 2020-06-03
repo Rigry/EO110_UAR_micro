@@ -27,7 +27,7 @@ int main()
    struct Flash_data {
       
       uint16_t hours = 0;
-      uint16_t minutes = 0; 
+      uint16_t minutes = 0;
       
    }flash;
    
@@ -46,37 +46,41 @@ int main()
    volatile decltype(auto) pwr_control = Pwr_control::make<mcu::PWR::Threshold::_2_9V>();
    pwr_control.set_callback([&]{
       flash.minutes = work_count.get_minutes();
+      
    });
 
    Timer timer_reset;
    bool pause_reset{false};
 
    auto reset = Button<Reset>();
-   reset.set_long_push_callback([&]{work_count.reset(); timer_reset.start(3_s); led_work = true; pause_reset = true;});
+   reset.set_long_push_callback([&]{work_count.reset(); timer_reset.start(5_s); led_red = true; led_yellow = true; pause_reset = true;});
 
    Timer timer{1_s};
 
    while(1){
       
-      // if (timer_reset.done()) {
-      //    timer_reset.stop();
-      //    pause_reset = false;
-      //    led_work = false;
-      // }
+      if (pause_reset) {
+         if (timer_reset.done()) {
+            timer_reset.stop();
+            pause_reset = false;
+            led_red = false;
+            led_yellow = false;
+         }
+      }
 
-      led_work ^= (timer.event() & not pause_reset);
+      led_work ^= (timer.event());
 
-      // led_work ^= timer.event();
-
-      if (flash.hours >= warning_hours and flash.hours < finish_hours) {
-         led_yellow = true;
-         led_red = false;
-      } else if (flash.hours >= finish_hours) {
-         led_yellow = false;
-         led_red = true;
-      } else {
-         led_yellow = false;
-         led_red = false;
+      if (not pause_reset) {
+         if (flash.hours >= warning_hours and flash.hours < finish_hours) {
+            led_yellow = true;
+            led_red = false;
+         } else if (flash.hours >= finish_hours) {
+            led_yellow = false;
+            led_red = true;
+         } else {
+            led_yellow = false;
+            led_red = false;
+         }
       }
 
       __WFI();
